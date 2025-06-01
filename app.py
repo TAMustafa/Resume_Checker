@@ -1,8 +1,6 @@
 import streamlit as st
 import requests
-import base64
-from pathlib import Path
-import json
+
 from typing import Dict, Any
 
 # Page configuration
@@ -12,45 +10,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
-# Custom CSS for better styling
-st.markdown("""
-    <style>
-    .main {
-        padding: 2rem;
-    }
-    .stButton>button {
-        width: 100%;
-        margin-top: 1rem;
-    }
-    .stProgress > div > div > div > div {
-        background-color: #4CAF50;
-    }
-    .stTextArea>div>div>textarea {
-        min-height: 200px;
-    }
-    .score-card {
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        background-color: #f8f9fa;
-        margin-bottom: 1rem;
-    }
-    .match-score {
-        font-size: 2.5rem;
-        font-weight: bold;
-        color: #4CAF50;
-        text-align: center;
-        margin: 1rem 0;
-    }
-    .section {
-        margin-bottom: 2rem;
-        padding: 1.5rem;
-        border-radius: 0.5rem;
-        background-color: #ffffff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 # API URL (assuming FastAPI is running on localhost:8000)
 API_URL = "http://localhost:8000"
@@ -113,12 +72,12 @@ def display_analysis():
         
         # Overall score card
         with st.container():
-            st.markdown("## 📊 Match Analysis")
+            st.header("Match Analysis")
             col1, col2 = st.columns([1, 2])
             
             with col1:
-                st.markdown("### Overall Match Score")
-                st.markdown(f"<div class='match-score'>{score.get('overall_score', 0)}/100</div>", unsafe_allow_html=True)
+                st.subheader("Overall Match Score")
+                st.metric("Overall Match Score", f"{score.get('overall_score', 0)}/100")
                 
                 # Score breakdown
                 st.metric("Skills Match", f"{score.get('skills_match', 0)}/100")
@@ -126,36 +85,42 @@ def display_analysis():
                 st.metric("Education Match", f"{score.get('education_match', 0)}/100")
             
             with col2:
-                st.markdown("### Detailed Feedback")
+                st.subheader("Detailed Feedback")
                 st.write(score.get('detailed_feedback', 'No feedback available.'))
         
         # Matched skills and qualifications
         if score.get('matched_skills') or score.get('matched_qualifications'):
-            with st.expander("✅ Matched Skills & Qualifications", expanded=True):
+            with st.expander("Matched Skills & Qualifications", expanded=True):
                 cols = st.columns(2)
                 with cols[0]:
                     if score.get('matched_skills'):
-                        st.markdown("#### Skills Matched")
-                        for skill in score.get('matched_skills', []):
-                            st.markdown(f"- {skill}")
+                        st.subheader("Skills Matched")
+                        st.dataframe({"Skills": score.get('matched_skills', [])})
                 with cols[1]:
                     if score.get('matched_qualifications'):
-                        st.markdown("#### Qualifications Matched")
-                        for qual in score.get('matched_qualifications', []):
-                            st.markdown(f"- {qual}")
+                        st.subheader("Qualifications Matched")
+                        st.dataframe({"Qualifications": score.get('matched_qualifications', [])})
         
         # Missing requirements
         if score.get('missing_requirements'):
-            with st.expander("❌ Missing Requirements", expanded=True):
-                st.markdown("The following job requirements were not found in your CV:")
-                for req in score.get('missing_requirements', []):
-                    st.markdown(f"- {req}")
+            with st.expander("Missing Requirements", expanded=True):
+                st.subheader("The following job requirements were not found in your CV:")
+                st.dataframe({"Missing Requirements": score.get('missing_requirements', [])})
         
         # Improvement suggestions
         if score.get('improvement_suggestions'):
-            with st.expander("💡 Suggestions for Improvement", expanded=True):
+            with st.expander("Suggestions for Improvement", expanded=True):
                 for suggestion in score.get('improvement_suggestions', []):
-                    st.markdown(f"- {suggestion}")
+                    st.write(suggestion)
+        
+        # Download analysis results
+        if score:
+            st.download_button(
+                label="Download Analysis as JSON",
+                data=str(score),
+                file_name="analysis_result.json",
+                mime="application/json"
+            )
 
 # Main app
 def display_cv_analysis():
@@ -171,48 +136,59 @@ def display_cv_analysis():
         st.error("Invalid CV analysis format. Please try analyzing your CV again.")
         return
     
-    st.markdown("## 📄 CV Analysis Results")
+    st.header("CV Analysis Results")
     
+    # Main details in expander
     with st.expander("View Full CV Analysis", expanded=True):
         # Key Skills
         if cv_analysis.get('key_skills'):
-            st.markdown("### Key Skills")
-            cols = st.columns(3)
-            for i, skill in enumerate(cv_analysis['key_skills']):
-                with cols[i % 3]:
-                    st.markdown(f"- {skill}")
-        
+            st.subheader("Key Skills")
+            st.dataframe({"Key Skills": cv_analysis['key_skills']})
         # Experience Summary
         if cv_analysis.get('experience_summary'):
-            st.markdown("### Experience Summary")
+            st.subheader("Experience Summary")
             st.write(cv_analysis['experience_summary'])
-        
         # Education
         if cv_analysis.get('education'):
-            st.markdown("### Education")
+            st.subheader("Education")
             st.write(cv_analysis['education'])
-        
         # Strengths
         if cv_analysis.get('strengths'):
-            st.markdown("### Strengths")
+            st.subheader("Strengths")
             for strength in cv_analysis['strengths']:
-                st.markdown(f"- {strength}")
-        
+                st.write(strength)
         # Recommendations
         if cv_analysis.get('recommendations'):
-            st.markdown("### Recommendations")
+            st.subheader("Recommendations")
             for rec in cv_analysis['recommendations']:
-                st.markdown(f"- {rec}")
+                st.write(rec)
+
+    # Raw JSON analysis output in a separate expander (not nested)
+    with st.expander("View Raw Analysis JSON"):
+        st.json(cv_analysis)
 
 def main():
-    st.title("📄 Resume Checker")
-    st.markdown("Upload your CV to get started. You can also add a job description for a detailed match analysis.")
+    # --- Sidebar with app info and instructions ---
+    st.sidebar.title("Resume Checker")
+    st.sidebar.info("""
+    Upload your CV and optionally a job description to analyze your fit for a role. 
+    - Use the **CV Analysis** tab to get a breakdown of your skills and experience.
+    - Use the **Job Match** tab to see how your CV matches a specific job description.
+
+    All analysis is local and sent securely to your FastAPI backend running at localhost:8000.
+    """)
+    
+    # --- Add st.info at the top for user guidance ---
+    st.info("Upload your CV and optionally a job description to analyze your fit for a role.")
+    
+    st.title("Resume Checker")
+    st.write("Upload your CV to get started. You can also add a job description for a detailed match analysis.")
     
     # Create tabs for different sections
     tab1, tab2 = st.tabs(["CV Analysis", "Job Match"])
     
     with tab1:
-        st.markdown("### 1. Upload Your CV (PDF)")
+        st.subheader("1. Upload Your CV (PDF)")
         uploaded_file = st.file_uploader("Choose a PDF file", type="pdf", key="cv_uploader")
         
         # Disable the Analyze CV button if no file is uploaded
@@ -239,7 +215,7 @@ def main():
         display_cv_analysis()
     
     with tab2:
-        st.markdown("### 2. Optional: Add Job Description for Matching")
+        st.subheader("2. Optional: Add Job Description for Matching")
         job_text = st.text_area(
             "Paste the job description here (optional)",
             placeholder="Paste the job description to see how well your CV matches...",
@@ -259,13 +235,11 @@ def main():
                         job_req = analyze_job_vacancy(job_text)
                         if job_req and isinstance(job_req, dict):
                             st.session_state.job_requirements = job_req
-                            
                             # Get matching score
                             matching_score = get_matching_score(
                                 st.session_state.cv_analysis,
                                 job_req
                             )
-                            
                             if matching_score and isinstance(matching_score, dict):
                                 st.session_state.matching_score = matching_score
                                 st.success("Job match analysis complete!")
@@ -279,7 +253,7 @@ def main():
     
     # Display results if available
     if st.session_state.matching_score:
-        st.markdown("---")
+        st.write("---")
         display_analysis()
 
 if __name__ == "__main__":
