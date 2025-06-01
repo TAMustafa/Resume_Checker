@@ -9,6 +9,9 @@ A powerful AI-driven application that analyzes resumes and matches them against 
 - **Matching Score**: Get a detailed matching score between a CV and job description
 - **Improvement Suggestions**: Receive actionable recommendations to improve your resume
 - **User-Friendly Interface**: Intuitive web interface built with Streamlit
+- **Fast and Responsive**: Caching and optimized feedback for fast user experience
+- **Downloadable Results**: Download your analysis as JSON
+- **Raw JSON Output**: Inspect the full structured analysis if desired
 
 ## Prerequisites
 
@@ -75,14 +78,16 @@ The application will open in your default web browser at `http://localhost:8501`
 ### 1. CV Analysis
 
 1. **Upload Your CV**
-   - Click on the "Choose a PDF file" button to upload your resume
+   - Click on the "Choose a PDF file" button to upload your resume (PDF supported by default; DOCX/TXT can be enabled if backend supports)
    - The "Analyze CV" button will become active once a file is selected
    - Click "Analyze CV" to process your resume
+   - A progress spinner and toast notification will indicate when analysis is complete
+   - Results are cached for repeated uploads of the same file
 
-2. **View Analysis Results**
-   - The system will display your key skills, experience summary, and education
-   - Review the analysis for accuracy
-   - Check the recommendations for improving your resume
+2. **Review CV Analysis**
+   - See a structured table of your key skills and experience
+   - Expand sections for education, strengths, recommendations, and more
+   - Optionally view the raw JSON output for advanced users
 
 ### 2. Job Match Analysis (Optional)
 
@@ -92,12 +97,14 @@ The application will open in your default web browser at `http://localhost:8501`
 2. **Enter Job Description**
    - Paste the job description in the text area
    - Click "Analyze Job Match" to compare your CV with the job requirements
+   - A spinner and toast notification will indicate when analysis is complete
+   - Results are cached for repeated analysis of the same job/CV pair
 
 3. **Review Matching Results**
-   - View your overall match score (0-100)
-   - See detailed breakdown by category (skills, experience, education)
-   - Review matched and missing requirements
-   - Get personalized improvement suggestions
+   - View your overall match score (0-100) and breakdown by skills, experience, education
+   - See matched and missing requirements in clear tables
+   - Download your analysis as JSON
+   - Expand for improvement suggestions and raw feedback
 
 ## API Endpoints
 
@@ -135,19 +142,29 @@ ResumeChecker/
 └── README.md               # This file
 ```
 
+## Notable Streamlit Features Used
+
+- **st.sidebar**: For app info and instructions
+- **st.info, st.success, st.warning, st.error**: For clear user feedback
+- **st.spinner, st.toast**: For progress and notifications
+- **st.dataframe, st.table**: For displaying structured data
+- **st.download_button**: For exporting results
+- **st.expander**: For collapsible sections and raw JSON
+- **st.cache_data**: For fast, repeated analysis
+
 ## Customization
 
 ### Updating AI Prompts
 
-You can modify the AI behavior by editing the prompts in `prompts.py`. The main prompts are:
+Prompts are now designed for robust, structured JSON output compatible with pydantic-ai and FastAPI. You can further customize them in `prompts.py`.
 
-- `job_requirements_prompt`: For extracting job requirements
-- `cv_review_prompt`: For analyzing CVs
-- `scoring_prompt`: For calculating match scores
+### File Types
 
-### Styling
+PDF is supported by default; DOCX/TXT can be enabled if your backend supports them (see comments in `app.py`).
 
-To modify the application's appearance, edit the CSS in the `st.markdown` section at the top of `app.py`.
+### Caching
+
+Streamlit's `st.cache_data` is used for fast, repeated analysis of the same input.
 
 ## Troubleshooting
 

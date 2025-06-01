@@ -90,7 +90,19 @@ def display_analysis():
             
             with col1:
                 st.subheader("Overall Match Score")
-                st.metric("Overall Match Score", f"{score.get('overall_score', 0)}/100")
+                score_value = score.get('overall_score', 0)
+                # Determine color and icon
+                if score_value < 70:
+                    color = 'orange'
+                    icon = '⚠️'
+                elif 70 <= score_value < 85:
+                    color = 'green'
+                    icon = '✅'
+                else:
+                    color = 'blue'
+                    icon = '🌟'
+                st.markdown(f"<span style='font-size:2.5rem;font-weight:bold;color:{color};'>{icon} {score_value}/100</span>", unsafe_allow_html=True)
+                st.metric("Overall Match Score", f"{score_value}/100")
                 
                 # Score breakdown
                 st.metric("Skills Match", f"{score.get('skills_match', 0)}/100")
