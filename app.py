@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
-
 from typing import Dict, Any
+from streamlit.runtime.caching import cache_data
 
 # Page configuration
 st.set_page_config(
@@ -65,6 +65,19 @@ def get_matching_score(cv_analysis: Dict[str, Any], job_requirements: Dict[str, 
         st.error(f"Error getting matching score: {str(e)}")
         return None
 
+# --- Caching for performance ---
+@cache_data(show_spinner=False)
+def cached_analyze_cv(uploaded_file):
+    return analyze_cv(uploaded_file)
+
+@cache_data(show_spinner=False)
+def cached_analyze_job_vacancy(job_text):
+    return analyze_job_vacancy(job_text)
+
+@cache_data(show_spinner=False)
+def cached_get_matching_score(cv_analysis, job_requirements):
+    return get_matching_score(cv_analysis, job_requirements)
+
 def display_analysis():
     """Display the analysis results"""
     if st.session_state.matching_score:
@@ -122,7 +135,6 @@ def display_analysis():
                 mime="application/json"
             )
 
-# Main app
 def display_cv_analysis():
     """Display CV analysis results"""
     if 'cv_analysis' not in st.session_state or st.session_state.cv_analysis is None:
@@ -189,31 +201,28 @@ def main():
     
     with tab1:
         st.subheader("1. Upload Your CV (PDF)")
-        uploaded_file = st.file_uploader("Choose a PDF file", type="pdf", key="cv_uploader")
-        
+        uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"], key="cv_uploader")
+
         # Disable the Analyze CV button if no file is uploaded
-        if st.button("Analyze CV", disabled=uploaded_file is None):
+        analyze_cv_btn = st.button("Analyze CV", disabled=uploaded_file is None)
+        if analyze_cv_btn:
             if uploaded_file is not None:
                 with st.spinner("Analyzing CV..."):
-                    try:
-                        # Analyze CV
-                        cv_analysis = analyze_cv(uploaded_file)
-                        if cv_analysis and isinstance(cv_analysis, dict):
-                            st.session_state.cv_analysis = cv_analysis
-                            st.session_state.cv_analyzed = True
-                            st.success("CV analyzed successfully!")
-                            # Show the analysis results
-                            st.rerun()
-                        else:
-                            st.error("Failed to analyze CV. Please try again.")
-                    except Exception as e:
-                        st.error(f"An error occurred while analyzing the CV: {str(e)}")
+                    cv_analysis = cached_analyze_cv(uploaded_file)
+                    if cv_analysis and isinstance(cv_analysis, dict):
+                        st.session_state.cv_analysis = cv_analysis
+                        st.session_state.cv_analyzed = True
+                        st.success("CV analyzed successfully!")
+                        st.toast("CV analysis complete!", icon="✅")
+                        st.rerun()
+                    else:
+                        st.error("Failed to analyze CV. Please try again.")
             else:
                 st.warning("Please upload a PDF file")
-        
+
         # Display CV analysis if available
         display_cv_analysis()
-    
+
     with tab2:
         st.subheader("2. Optional: Add Job Description for Matching")
         job_text = st.text_area(
@@ -222,35 +231,32 @@ def main():
             height=200,
             key="job_text"
         )
-        
-        if st.button("Analyze Job Match"):
+
+        analyze_job_btn = st.button("Analyze Job Match")
+        if analyze_job_btn:
             if not st.session_state.get('cv_analyzed') or 'cv_analysis' not in st.session_state:
                 st.warning("Please analyze your CV first")
             elif not job_text.strip():
                 st.warning("Please enter a job description")
             else:
                 with st.spinner("Analyzing job requirements and calculating match..."):
-                    try:
-                        # Analyze job requirements
-                        job_req = analyze_job_vacancy(job_text)
-                        if job_req and isinstance(job_req, dict):
-                            st.session_state.job_requirements = job_req
-                            # Get matching score
-                            matching_score = get_matching_score(
-                                st.session_state.cv_analysis,
-                                job_req
-                            )
-                            if matching_score and isinstance(matching_score, dict):
-                                st.session_state.matching_score = matching_score
-                                st.success("Job match analysis complete!")
-                                st.rerun()
-                            else:
-                                st.error("Failed to calculate matching score. Please try again.")
+                    job_req = cached_analyze_job_vacancy(job_text)
+                    if job_req and isinstance(job_req, dict):
+                        st.session_state.job_requirements = job_req
+                        matching_score = cached_get_matching_score(
+                            st.session_state.cv_analysis,
+                            job_req
+                        )
+                        if matching_score and isinstance(matching_score, dict):
+                            st.session_state.matching_score = matching_score
+                            st.success("Job match analysis complete!")
+                            st.toast("Job match complete!", icon="🎯")
+                            st.rerun()
                         else:
-                            st.error("Failed to analyze job requirements. Please try again.")
-                    except Exception as e:
-                        st.error(f"An error occurred during job matching: {str(e)}")
-    
+                            st.error("Failed to calculate matching score. Please try again.")
+                    else:
+                        st.error("Failed to analyze job requirements. Please try again.")
+
     # Display results if available
     if st.session_state.matching_score:
         st.write("---")
