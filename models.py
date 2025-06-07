@@ -3,23 +3,19 @@ from typing import List, Optional
 
 class JobRequirements(BaseModel):
     """Represents job requirements extracted from a job posting."""
-    job_title: str = Field(..., description="Job title as stated in the posting")
     skills: List[str] = Field(default_factory=list, description="Required skills")
     experience: str = Field(..., description="Required years/type of experience")
-    education: str = Field(..., description="Required education or degree")
     qualifications: List[str] = Field(default_factory=list, description="Other qualifications or certifications")
     languages: List[str] = Field(default_factory=list, description="Required languages")
     certifications: List[str] = Field(default_factory=list, description="Required certifications")
     responsibilities: List[str] = Field(default_factory=list, description="Key responsibilities or duties")
     seniority_level: Optional[str] = Field(None, description="Seniority level (e.g., junior, senior, lead)")
-    employment_type: Optional[str] = Field(None, description="Employment type (e.g., full-time, contract)")
     model_config = {'strict': True}
 
 class CVAnalysis(BaseModel):
     """Represents the analysis of a CV."""
-    key_skills: List[str] = Field(default_factory=list, description="Skills found in the CV")
+    skills: List[str] = Field(default_factory=list, description="Skills found in the CV")
     experience_summary: str = Field(..., description="Summary of relevant experience")
-    education: str = Field(..., description="Education background")
     strengths: List[str] = Field(default_factory=list, description="Key strengths")
     weaknesses: List[str] = Field(default_factory=list, description="Key weaknesses")
     recommendations: List[str] = Field(default_factory=list, description="Recommendations for improvement")
@@ -27,7 +23,6 @@ class CVAnalysis(BaseModel):
     certifications: List[str] = Field(default_factory=list, description="Certifications listed")
     responsibilities: List[str] = Field(default_factory=list, description="Responsibilities held in previous roles")
     seniority_level: Optional[str] = Field(None, description="Seniority level inferred from CV")
-    employment_type: Optional[str] = Field(None, description="Employment type(s) held")
     model_config = {'strict': True}
 
 class MatchingScore(BaseModel):
@@ -35,7 +30,6 @@ class MatchingScore(BaseModel):
     overall_score: int = Field(..., description="Overall match score (0-100)")
     skills_match: int = Field(..., description="Skills match score (0-100)")
     experience_match: int = Field(..., description="Experience match score (0-100)")
-    education_match: int = Field(..., description="Education match score (0-100)")
     detailed_feedback: str = Field(..., description="Detailed feedback on the match")
     missing_requirements: List[str] = Field(default_factory=list, description="Requirements not met")
     improvement_suggestions: List[str] = Field(default_factory=list, description="Suggestions for improvement")

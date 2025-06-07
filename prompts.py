@@ -3,18 +3,10 @@ job_requirements_prompt ='''Extract all relevant job requirements and characteri
 Return your output as a JSON object with keys for each of the following categories. For each category, extract all relevant details, even if they seem minor. If a category is not explicitly mentioned, set its value to "Not specified". Do not invent or assume information not present in the text. Do not repeat information across categories. Be concise and specific.
 
 Categories:
-- job_title
 - required_skills: {"technical_skills": [...], "soft_skills": [...]}
 - experience_level_and_type: {"minimum_years": ..., "industry_experience": ..., "type": ..., "leadership_experience": ...}
-- education_requirements: {"minimum_degree": ..., "field_of_study": ..., "preferred_background": ...}
 - qualifications_and_certifications: [...]
 - key_responsibilities: [...]
-- location
-- employment_type
-- company_culture
-- compensation_benefits
-- application_instructions
-- nice_to_have_skills
 '''
 
 cv_review_prompt ='''You are an expert career advisor and resume analyst. Thoroughly analyze the provided candidate CV in the context of the given job requirements.
@@ -23,7 +15,7 @@ Return your output as a JSON object with the following keys. For each section, i
 
 Keys:
 - candidate_suitability_assessment: {"overall_fit_score": int (1-10), "justification": str, "strengths": [...], "gaps": [...]}
-- key_information_from_cv: {"experience_summary": str, "technical_skills": [...], "soft_skills": [...], "education": [...], "certifications": [...], "awards": [...]} 
+- key_information_from_cv: {"experience_summary": str, "technical_skills": [...], "soft_skills": [...], "certifications": [...]} 
 - strategic_recommendations: {"tailoring_recommendations": [...], "interview_focus": [...], "career_development": [...]}
 
 Important: Do NOT invent information. Use only what is present in the CV. Use clear, structured JSON. Do not repeat recommendations across sections. Keep feedback concise and actionable.
@@ -42,8 +34,6 @@ Keys:
 - soft_skills_explanation: str
 - experience_score: int (0-100)
 - experience_explanation: str
-- education_score: int (0-100)
-- education_explanation: str
 - qualifications_score: int (0-100)
 - qualifications_explanation: str
 - key_responsibilities_score: int (0-100)

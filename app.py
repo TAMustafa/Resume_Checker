@@ -107,7 +107,6 @@ def display_analysis():
                 # Score breakdown
                 st.metric("Skills Match", f"{score.get('skills_match', 0)}/100")
                 st.metric("Experience Match", f"{score.get('experience_match', 0)}/100")
-                st.metric("Education Match", f"{score.get('education_match', 0)}/100")
             
             with col2:
                 st.subheader("Detailed Feedback")
@@ -172,10 +171,6 @@ def display_cv_analysis():
         if cv_analysis.get('experience_summary'):
             st.subheader("Experience Summary")
             st.write(cv_analysis['experience_summary'])
-        # Education
-        if cv_analysis.get('education'):
-            st.subheader("Education")
-            st.write(cv_analysis['education'])
         # Strengths
         if cv_analysis.get('strengths'):
             st.subheader("Strengths")
