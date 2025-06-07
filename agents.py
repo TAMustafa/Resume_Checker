@@ -21,10 +21,11 @@ logfire.instrument_pydantic_ai()
 # --- Agent Definitions ---
 # Configure model settings with temperature=0.3 for more focused, deterministic outputs
 model_settings = {
-    'temperature': 0.3,  # Lower temperature for more focused, less random outputs
-    'max_tokens': 2000   # Ensure we have enough tokens for detailed responses
+    'temperature': 0.1,   # Lower temperature for more focused, less random outputs
+    'max_tokens': 2000    # Ensure we have enough tokens for detailed responses
 }
 
+# Define agents with their respective models and prompts
 job_requirements_agent = Agent(
     'openai:gpt-4o-mini',
     output_type=JobRequirements,

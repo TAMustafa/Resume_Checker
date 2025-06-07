@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 from typing import Dict, Any
 from streamlit.runtime.caching import cache_data
+import os
 
 # Page configuration
 st.set_page_config(
@@ -35,18 +36,17 @@ def analyze_job_vacancy(vacancy_text: str) -> Dict[str, Any]:
         st.error(f"Error analyzing job vacancy: {str(e)}")
         return None
 
-def analyze_cv(uploaded_file) -> Dict[str, Any]:
+def analyze_cv(file_bytes: bytes, filename: str) -> Dict[str, Any]:
     """Upload and analyze CV"""
-    try:
-        files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
-        response = requests.post(
-            f"{API_URL}/analyze-cv",
-            files=files
-        )
-        response.raise_for_status()
+    files = {"file": (filename, file_bytes, "application/pdf")}
+    response = requests.post(
+        f"{API_URL}/analyze-cv",
+        files=files,
+        timeout=60,
+    )
+    if response.status_code == 200:
         return response.json()
-    except Exception as e:
-        st.error(f"Error analyzing CV: {str(e)}")
+    else:
         return None
 
 def get_matching_score(cv_analysis: Dict[str, Any], job_requirements: Dict[str, Any]) -> Dict[str, Any]:
@@ -67,8 +67,8 @@ def get_matching_score(cv_analysis: Dict[str, Any], job_requirements: Dict[str, 
 
 # --- Caching for performance ---
 @cache_data(show_spinner=False)
-def cached_analyze_cv(uploaded_file):
-    return analyze_cv(uploaded_file)
+def cached_analyze_cv(file_bytes: bytes, filename: str):
+    return analyze_cv(file_bytes, filename)
 
 @cache_data(show_spinner=False)
 def cached_analyze_job_vacancy(job_text):
@@ -191,6 +191,30 @@ def display_cv_analysis():
     with st.expander("View Raw Analysis JSON"):
         st.json(cv_analysis)
 
+# --- Persistent CV storage directory ---
+CV_DIR = "uploaded_cvs"
+os.makedirs(CV_DIR, exist_ok=True)
+
+def list_saved_cvs():
+    files = [f for f in os.listdir(CV_DIR) if f.lower().endswith(".pdf")]
+    return files
+
+def save_uploaded_cv(uploaded_file):
+    filename = uploaded_file.name
+    # Ensure unique filename
+    base, ext = os.path.splitext(filename)
+    i = 1
+    while os.path.exists(os.path.join(CV_DIR, filename)):
+        filename = f"{base}_{i}{ext}"
+        i += 1
+    with open(os.path.join(CV_DIR, filename), "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    return filename
+
+def load_cv_file(filename):
+    with open(os.path.join(CV_DIR, filename), "rb") as f:
+        return f.read()
+
 def main():
     # --- Sidebar with app info and instructions ---
     st.sidebar.title("Resume Checker")
@@ -213,14 +237,34 @@ def main():
     
     with tab1:
         st.subheader("1. Upload Your CV (PDF)")
-        uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"], key="cv_uploader")
+        saved_cvs = list_saved_cvs()
+        selected_cv = None
+        if saved_cvs:
+            selected_cv = st.selectbox("Or select a previously uploaded CV:", ["Upload new CV"] + saved_cvs)
+        else:
+            st.write("No previously uploaded CVs found.")
+            selected_cv = "Upload new CV"
 
-        # Disable the Analyze CV button if no file is uploaded
-        analyze_cv_btn = st.button("Analyze CV", disabled=uploaded_file is None)
-        if analyze_cv_btn:
+        file_bytes = None
+        filename = None
+        if selected_cv == "Upload new CV":
+            uploaded_file = st.file_uploader("Choose a PDF file", type=["pdf"], key="cv_uploader")
             if uploaded_file is not None:
+                file_bytes = uploaded_file.getvalue()
+                filename = uploaded_file.name
+        else:
+            filename = selected_cv
+            file_bytes = load_cv_file(filename)
+
+        analyze_cv_btn = st.button("Analyze CV", disabled=(file_bytes is None or filename is None))
+        if analyze_cv_btn:
+            if file_bytes is not None and filename is not None:
+                # If it's a new upload, save it
+                if selected_cv == "Upload new CV" and uploaded_file is not None:
+                    saved_filename = save_uploaded_cv(uploaded_file)
+                    st.success(f"CV saved as {saved_filename}")
                 with st.spinner("Analyzing CV..."):
-                    cv_analysis = cached_analyze_cv(uploaded_file)
+                    cv_analysis = cached_analyze_cv(file_bytes, filename)
                     if cv_analysis and isinstance(cv_analysis, dict):
                         st.session_state.cv_analysis = cv_analysis
                         st.session_state.cv_analyzed = True
@@ -230,9 +274,8 @@ def main():
                     else:
                         st.error("Failed to analyze CV. Please try again.")
             else:
-                st.warning("Please upload a PDF file")
+                st.warning("Please upload a PDF file or select one from the list.")
 
-        # Display CV analysis if available
         display_cv_analysis()
 
     with tab2:
